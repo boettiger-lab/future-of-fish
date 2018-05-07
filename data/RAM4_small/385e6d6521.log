@@ -1,0 +1,28 @@
+
+Loading the model ...
+  input file   : /home/rstudio/RAM4_small/385e6d6521.pomdpx
+  loading time : 4.51s 
+
+SARSOP initializing ...
+  initialization time : 10781.91s
+
+-------------------------------------------------------------------------------
+ Time   |#Trial |#Backup |LBound    |UBound    |Precision  |#Alphas |#Beliefs  
+-------------------------------------------------------------------------------
+ 10781.9 0       0        -3830.16   -229.084   3601.08     101      1        
+-------------------------------------------------------------------------------
+
+SARSOP finishing ...
+  Preset timeout reached
+  Timeout     : 10000.000000s
+  Actual Time : 10782.040000s
+
+-------------------------------------------------------------------------------
+ Time   |#Trial |#Backup |LBound    |UBound    |Precision  |#Alphas |#Beliefs  
+-------------------------------------------------------------------------------
+ 10782   0       1        -3825.88   -3639.44   186.441     34       2        
+-------------------------------------------------------------------------------
+
+Writing out policy ...
+  output file : RAM4_small/385e6d6521.policyx
+

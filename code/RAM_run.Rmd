@@ -1,0 +1,77 @@
+---
+output: md_document
+---
+
+```{r}
+library("sarsop")
+library("pomdpplus")
+library("tidyr")
+library("purrr")
+library("dplyr")
+library("ggplot2")
+source("../R/Fish_dynamic_Fun2.R")
+source("../R/fisheries_matrices.R")
+knitr::opts_chunk$set(cache = FALSE, message=FALSE)
+theme_set(theme_bw())
+```
+
+```{r,eval=FALSE}
+mc.cores <- 8
+log_dir <- "RAM4_large"
+dir.create(log_dir)
+
+load("../data/RAM_files3.RData")
+mean_G[mean_G > 0.2] = 0.2
+TT = vector("list", length = length(mean_r))
+OO = vector("list", length = length(mean_r))
+states = seq(0,2,by = 0.02)
+actions <- states
+obs <- states
+R = create_R(states,actions)
+R[1,] = -100
+GAMMA = 0.99
+sigma_m = 0.2
+
+for(ii in 1:length(mean_r)){
+  
+  cc <- fisheries_matrices(states,actions,obs,f = logistic, sigma_g = mean_G[ii],
+                         sigma_m = sigma_m, r = mean_r[ii],K = mean_K[ii], noise = "normal")
+  TT[[ii]] = cc$transition
+  OO[[ii]] = cc$observation
+}
+
+
+```
+
+```{r, eval=FALSE}
+vars <- expand.grid(Ind = seq(1,length(mean_r)))
+
+fixed <- data.frame(sigma_m = sigma_m, discount = GAMMA, model = "logistic", precision = 0.000000000000000001, timeout = 10000)
+
+pars <- data.frame(vars, fixed)
+
+pars <- data.frame(pars,mean_G)
+
+models = vector("list", length = length(mean_r))  
+
+for(i in 1:length(models)){
+  models[[i]] = vector("list",3)
+} 
+
+k = 1
+for(i in 1:length(mean_r)){
+  models[[k]]$transition = TT[[i]]
+  models[[k]]$observation = OO[[i]]
+  models[[k]]$reward = R
+  k = k+1 
+}
+
+alphas <- sarsop_plus(models, 
+                      discount = pars[1, "discount"], 
+                      precision = pars[1, "precision"], 
+                      timeout = pars[1, "timeout"],
+                      log_dir = log_dir, 
+                      log_data = pars,
+                      mc.cores = mc.cores)
+```
+

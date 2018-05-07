@@ -1,0 +1,14 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+*.RData
+*.rdb
+*.rdx
+__packages
+.DS_Store
+*.tex
+*.zip
+*.gz
+*.fff
+*.spl
