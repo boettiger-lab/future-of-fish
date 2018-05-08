@@ -1,0 +1,149 @@
+---
+output: md_document
+---
+
+```{r}
+library(pomdpplus)
+library(sarsop)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+source("../utilities/Fish_dynamic_Fun2.R")
+source("../utilities/findpolicy_Milad2.R")
+library(xml2)
+library(MDPtoolbox)
+source("../utilities/Interp_MM.R")
+source("../utilities/L_fun.R")
+library(nimble)
+```
+
+## Reading RAM data (No need because we have it saved)
+```{r}
+download.file("https://depts.washington.edu/ramlegac/wordpress/databaseVersions/RLSADB_v3.0_(assessment_data_only)_excel.zip",
+              "ramlegacy.zip")
+path <- unzip("ramlegacy.zip")
+sheets <- readxl::excel_sheets(path)
+ram <- lapply(sheets, readxl::read_excel, path = path)
+names(ram) <- sheets
+
+
+ram$timeseries_values_views %>%
+  select(assessid, stockid, stocklong, year, SSB, TC) %>%
+  left_join(ram$stock) %>%
+  left_join(ram$area) %>%
+  select(assessid, stockid, scientificname, commonname, areaname, country, year, SSB, TC) %>%
+  left_join(ram$timeseries_units_views %>%
+              rename(TC_units = TC, SSB_units = SSB)) %>%
+  select(scientificname, commonname,  stockid, areaname, country, year, SSB, TC, SSB_units, TC_units) ->
+  df
+```
+
+# Load data
+
+```{r}
+df2 <- df %>% filter(!is.na(df$SSB), !is.na(df$TC))
+df2 <- df2 %>% filter(SSB_units == "MT", TC_units=="MT")
+df2 <- df2 %>% filter(SSB > TC)
+
+c = unique(df2$stockid)
+data = vector("list",length = length(unique(df2$stockid)))
+for(i in 1:length(data)){
+  print(i)
+  data[[i]]$commmonname = df2$commonname[df2$stockid == c[i]][1]
+  data[[i]]$country = df2$country[df2$stockid == c[i]][1]
+  data[[i]]$scientificname = df2$scientificname[df2$stockid == c[i]][1]
+  data[[i]]$areaname = df2$areaname[df2$stockid == c[i]][1]
+  data[[i]]$biomass = df2$SSB[df2$stockid == c[i]]
+  data[[i]]$catch = df2$TC[df2$stockid == c[i]]
+  data[[i]]$year = df2$year[df2$stockid == c[i]]
+}
+
+save(data, file = "../data/RAM_data_us.RData")
+
+
+```
+
+
+## run Nimble
+
+```{r}
+load("../data/RAM_data_us.RData")
+est_bay <- vector("list",length = length(data))
+scale = array(0, dim = length(data))
+for(i in 1:length(data)){
+  print(i)
+  post = data[[i]]
+  N = length(post$year)
+  scale[i] = max(post$biomass)
+  scaled_data <- data.frame(t = 1:N, y = post$biomass / scale[i], a = post$catch / scale[i])
+
+  code <- nimbleCode({
+         K ~ dunif(0, 1)
+         r ~ dunif(0, 2)
+     sigma ~ dunif(0, 0.5)
+
+    x[1] <- x0
+    for(t in 1:(N-1)){
+      s[t] <-  x[t] - min(x[t], a[t])
+      mu[t] <- s[t]  + r * s[t] *(1 - s[t] / K)
+      x[t+1] ~ dnorm(mu[t], sd = sigma)
+      }
+  })
+
+
+  constants <- list(N = N, a = scaled_data$a)
+  inits <- list(K = 1, r = 0.1, sigma = 0.1, x0 = scaled_data$y[1])
+  Rmodel <- nimbleModel(code = code, constants = constants, inits = inits, data = data.frame(x = scaled_data$y[1:N]))
+
+
+ 
+
+  Cmodel <- compileNimble(Rmodel)
+  Rmcmc <- buildMCMC(Rmodel)
+  Cmcmc <- compileNimble(Rmcmc, project = Rmodel)
+  Cmcmc$run(1e5)
+
+  
+  samples <- as.data.frame(as.matrix(Cmcmc$mvSamples))
+  
+  nimble:::clearCompiled(Rmodel)
+  
+  est_bay[[i]]$r = samples$r
+  est_bay[[i]]$K = samples$K
+  est_bay[[i]]$sigma = samples$sigma
+}
+
+#Saving this
+#save(est_bay,file = "../data/RAM_Nimble_estimates3.RData")
+
+```
+
+# simplifying the estimation, this is done and the data is the data folder
+```{r}
+
+
+mean_r = array(0, dim = c(length(data)))
+mean_K = array(0, dim = c(length(data)))
+mean_G = array(0, dim = c(length(data)))
+min_r = array(0, dim = c(length(data)))
+max_r = array(0, dim = c(length(data)))
+min_K = array(0, dim = c(length(data)))
+max_K = array(0, dim = c(length(data)))
+sd_r = array(0, dim = c(length(data)))
+sd_K = array(0, dim = c(length(data)))
+
+for(i in 1:length(data)){
+  mean_r[i] = mean(est_bay[[i]]$r)
+  mean_K[i] = mean(est_bay[[i]]$K)
+  mean_G[i] = mean(est_bay[[i]]$sigma)
+  min_r[i] = min(est_bay[[i]]$r)
+  min_K[i] = min(est_bay[[i]]$K)
+  max_r[i] = max(est_bay[[i]]$r)
+  max_K[i] = max(est_bay[[i]]$K)
+  sd_r[i] = sd(est_bay[[i]]$r)
+  sd_K[i] = sd(est_bay[[i]]$K)
+}
+
+save(mean_r,mean_K,mean_G,min_r,min_K,max_r,max_K,sd_r,sd_K,file = "../data/RAM_files3.RData")
+```
+
