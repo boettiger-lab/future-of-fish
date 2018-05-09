@@ -2,6 +2,8 @@
 output: md_document
 ---
 
+These are the libraries that needs to be installed before running any of the scripts.
+
 ```{r}
 library(pomdpplus)
 library(sarsop)
@@ -18,6 +20,7 @@ library(nimble)
 ```
 
 ## Reading RAM data (No need because we have it saved)
+
 ```{r, eval=FALSE}
 download.file("https://depts.washington.edu/ramlegac/wordpress/databaseVersions/RLSADB_v3.0_(assessment_data_only)_excel.zip",
               "ramlegacy.zip")
@@ -36,11 +39,7 @@ ram$timeseries_values_views %>%
               rename(TC_units = TC, SSB_units = SSB)) %>%
   select(scientificname, commonname,  stockid, areaname, country, year, SSB, TC, SSB_units, TC_units) ->
   df
-```
 
-# Load data
-
-```{r,eval=FALSE}
 df2 <- df %>% filter(!is.na(df$SSB), !is.na(df$TC))
 df2 <- df2 %>% filter(SSB_units == "MT", TC_units=="MT")
 df2 <- df2 %>% filter(SSB > TC)
@@ -58,13 +57,13 @@ for(i in 1:length(data)){
   data[[i]]$year = df2$year[df2$stockid == c[i]]
 }
 
-save(data, file = "RAM_data_us.RData")
-
+save(data, file = "../data/Rdata/RAM_data_us.RData")
 
 ```
 
+## running Nimble
 
-## run Nimble
+In this chunk we run NIMBLE to estimate the parameters of the population dynamics give the data. Again, the results are already saved under the data. 
 
 ```{r, eval=FALSE}
 load("../data/RAM_data_us.RData")
@@ -111,11 +110,12 @@ for(i in 1:length(data)){
 }
 
 #Saving this
-#save(est_bay,file = "RAM_Nimble_estimates3.RData")
+#save(est_bay,file = "../data/Rdata/RAM_Nimble_estimates3.RData")
 
 ```
 
-# simplifying the estimation, this is done and the data is the data folder
+simplifying the estimation, this is done and the data is the data folder
+
 ```{r,eval=FALSE}
 
 
@@ -141,6 +141,6 @@ for(i in 1:length(data)){
   sd_K[i] = sd(est_bay[[i]]$K)
 }
 
-save(mean_r,mean_K,mean_G,min_r,min_K,max_r,max_K,sd_r,sd_K,file = "RAM_files3.RData")
+save(mean_r,mean_K,mean_G,min_r,min_K,max_r,max_K,sd_r,sd_K,file = "../data/Rdata/RAM_files3.RData")
 ```
 
