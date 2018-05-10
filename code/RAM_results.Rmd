@@ -645,9 +645,11 @@ for(i in 1:dim(find_biomass)[2]){
 
 ```
 
-# Visualizing the results 
+# creating dataframes for visualization
 
-## Figure 1
+No need to run this, the results are saved before. 
+
+
 ```{r}
 low = 1980; high = 2007
 years = seq(low,high)
@@ -755,29 +757,6 @@ qqq$traj[qqq$Var3 == "POMDP" &  qqq$Var1 %in% seq(low,(high-1))] = NA
 qqq$traj[qqq$Var3 == "MDP" &  qqq$Var1 %in% seq(low,(high-1))] = NA
 qqq$traj[qqq$Var3 == "80% MSY" &  qqq$Var1 %in% seq(low,(high-1))] = NA
 qqq$traj[qqq$Var3 == "BAU" &  qqq$Var1 %in% seq(low,(high-1))] = NA
-
-
-font = 22
-qqq %>% filter(Var1 <= 2050) %>% ggplot(aes(Var1, traj)) +
-  stat_summary(aes(color = Var3), geom = "line", fun.y = mean, lwd = 1) + 
-  stat_summary(aes(fill = Var3), geom = "ribbon", fun.data = mean_sdl, fun.args = list(mult = 2), alpha = .2) +
-  theme_bw() + ylab(expression(paste("% of stock above 80% ", B, "/", B[MSY]))) + xlab("Year")  + 
-  facet_wrap(~Var4, nrow = 2, strip.position = "top") +
-  scale_color_manual(values = c("goldenrod1","#00BFC4","black","#F8766D","blueviolet")) + 
-  scale_fill_manual(values = c("goldenrod1","#00BFC4","black","#F8766D","blueviolet")) + 
-  theme(legend.title=element_blank(), axis.title.x = element_text(size = font), 
-        axis.title.y = element_text(size = font), legend.text = element_text(size = font) ,
-        legend.position = "top",axis.text = element_text(size = font), strip.text = element_text(size = font),
-        plot.margin=unit(c(1,1,0.5,0.5),"cm")) + coord_fixed(ylim = c(0,100), ratio = 0.56)
-
-```
-
-
-## Figure 2
-
-
-```{r}
-# creating the map graph and the fish chart
 
 N_Atl = c(1  , 2  , 6 , 10  ,11 , 21 , 29 ,30,  31,  43 , 44 , 47 , 74, 100, 101 ,107)
 Indian = c(15 ,88, 96)
@@ -890,6 +869,30 @@ for(i in 1:length(fish2)){
 fish_data= data.frame(fish_data,min_fish)
 
 
+
+```
+
+
+## Visualizing the figures
+
+```{r}
+# Figure 1
+load("../data/Rdata/fig1_final.RData")
+font = 22
+qqq %>% filter(Var1 <= 2050) %>% ggplot(aes(Var1, traj)) +
+  stat_summary(aes(color = Var3), geom = "line", fun.y = mean, lwd = 1) + 
+  stat_summary(aes(fill = Var3), geom = "ribbon", fun.data = mean_sdl, fun.args = list(mult = 2), alpha = .2) +
+  theme_bw() + ylab(expression(paste("% of stock above 80% ", B, "/", B[MSY]))) + xlab("Year")  + 
+  facet_wrap(~Var4, nrow = 2, strip.position = "top") +
+  scale_color_manual(values = c("goldenrod1","#00BFC4","black","#F8766D","blueviolet")) + 
+  scale_fill_manual(values = c("goldenrod1","#00BFC4","black","#F8766D","blueviolet")) + 
+  theme(legend.title=element_blank(), axis.title.x = element_text(size = font), 
+        axis.title.y = element_text(size = font), legend.text = element_text(size = font) ,
+        legend.position = "top",axis.text = element_text(size = font), strip.text = element_text(size = font),
+        plot.margin=unit(c(1,1,0.5,0.5),"cm")) + coord_fixed(ylim = c(0,100), ratio = 0.56)
+
+# Fish chart of the figure 2
+load("../data/Rdata/fish_chart.RData")
 fish_data %>% ggplot() + 
   geom_hline(yintercept = 0, alpha = 0.9, size = 1.5) +
   geom_hline(yintercept = 25, alpha = 0.9, size = 1.5) +
@@ -909,7 +912,6 @@ fish_data %>% ggplot() +
 
 
 ## individual plots in the section (C) of the plot:
-
 
 load("../data/Rdata/sample_traj.RData")
 
